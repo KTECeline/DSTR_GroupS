@@ -16,17 +16,18 @@ void runArraySelection(const string userSkills[], int userNum, const string& fil
     cout << "\n--- Array + Selection Sort + Linear Search ---" << endl;
 
     auto loadStart = chrono::high_resolution_clock::now();
-    Resume arr[100];
+    Resume arr[10000];
     int size = 0;
     ifstream file(filename);
     string line;
     bool skipHeader = isJob;
-    while (getline(file, line) && size < 100) {
+    while (getline(file, line)) {
         if (line.empty()) continue;
         if (skipHeader) {
             skipHeader = false;
             continue;
         }
+        if (size >= 10000) break;
         parseSkills(line, arr[size], isJob);
         if (arr[size].numSkills > 0) ++size;
     }
@@ -42,12 +43,12 @@ void runArraySelection(const string userSkills[], int userNum, const string& fil
     cout << "Sort time (Selection Sort): " << sortDur << " ms" << endl;
 
     auto matchStart = chrono::high_resolution_clock::now();
-    Match matches[100];
+    Match matches[10000];
     int mSize = 0;
     matchArray(arr, size, userSkills, userNum, matches, mSize, false);
     auto matchEnd = chrono::high_resolution_clock::now();
     auto matchDur = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
     cout << "Match time: " << matchDur << " ms" << endl;
 
-    printMatches(matches, mSize, isEmployer);
+    printMatches(matches, mSize, isEmployer, size);
 }

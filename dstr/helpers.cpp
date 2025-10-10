@@ -1,29 +1,36 @@
 // helpers.cpp
 #include "common.hpp"
 
-void parseSkills(string line, Resume& res, bool isJob) {
-    res.numSkills = 0;
-    res.fullDesc = line;
+int splitString(const string& line, string tokens[], int maxTokens) {
+    int count = 0;
     stringstream ss(line);
     string token;
-    vector<string> tokens;
     while (getline(ss, token, ',')) {
         if (!token.empty()) {
             token.erase(0, token.find_first_not_of(" \t"));
             size_t last = token.find_last_not_of(" \t");
             if (last != string::npos) token.erase(last + 1);
-            tokens.push_back(token);
+            if (count < maxTokens) tokens[count++] = token;
         }
     }
+    return count;
+}
+
+void parseSkills(string line, Resume& res, bool isJob) {
+    res.fullDesc = line;
+    string tokens[50];
+    int tokCount = splitString(line, tokens, 50);
+    res.numSkills = 0;
     if (isJob) {
-        if (tokens.empty()) return;
-        res.title = tokens[0];
-        for (size_t i = 1; i < tokens.size() && res.numSkills < 20; ++i) {
-            res.skills[res.numSkills++] = tokens[i];
+        if (tokCount > 0) {
+            res.title = tokens[0];
+            for (int i = 1; i < tokCount && res.numSkills < 20; ++i) {
+                res.skills[res.numSkills++] = tokens[i];
+            }
         }
     } else {
         res.title = "Candidate";
-        for (size_t i = 0; i < tokens.size() && res.numSkills < 20; ++i) {
+        for (int i = 0; i < tokCount && res.numSkills < 20; ++i) {
             res.skills[res.numSkills++] = tokens[i];
         }
     }
@@ -109,13 +116,16 @@ void matchList(Node* head, const string userSk[], int userN, Match m[], int& mSi
     }
 }
 
-void printMatches(const Match m[], int mSize, bool isEmployer) {
+void printMatches(const Match m[], int mSize, bool isEmployer, int totalSize) {
     string header = isEmployer ? "Matching Candidates:" : "Matching Jobs:";
     string label = isEmployer ? "Candidate " : "Job ";
     cout << header << endl;
-    for (int i = 0; i < mSize; ++i) {
-        cout << label << (i + 1) << ": " << m[i].fullDesc << " - " 
+    for (int i = 0; i < mSize && i < 10; ++i) {
+        cout << label << (m[i].id + 1) << ": " << m[i].fullDesc << " - " 
              << fixed << setprecision(2) << m[i].perc << "% match" << endl;
+    }
+    if (mSize > 10) {
+        cout << "... and " << (mSize - 10) << " more matches (see matches.txt)" << endl;
     }
     if (mSize == 0) cout << "No matches found." << endl;
 }

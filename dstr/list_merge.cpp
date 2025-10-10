@@ -20,14 +20,17 @@ void runListMerge(const string userSkills[], int userNum, const string& filename
     cout << "Sort time (Merge Sort): " << sortDur << " ms" << endl;
 
     auto matchStart = chrono::high_resolution_clock::now();
-    Match matches[100];
+    // Use manual heap buffer for matches to avoid std::vector
+    Match* matches = new Match[10000];
     int mSize = 0;
     matchList(head, userSkills, userNum, matches, mSize, true);
     auto matchEnd = chrono::high_resolution_clock::now();
     auto matchDur = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
     cout << "Match time: " << matchDur << " ms" << endl;
 
-    printMatches(matches, mSize, isEmployer);
+    if (mSize > 0) printMatches(matches, mSize, isEmployer, size);
+    else printMatches(nullptr, 0, isEmployer, size);
+    delete[] matches;
 
     freeList(head);
 }

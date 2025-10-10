@@ -17,12 +17,7 @@ int main() {
     cin.ignore();
     bool isEmployer = (role == 'e' || role == 'E');
     bool isJob = !isEmployer;
-    string filename;
-    if (isEmployer) {
-        filename = "cleaned_resumes.txt";
-    } else {
-        filename = "cleaned_job_description.csv";
-    }
+    string filename = isEmployer ? "cleaned_resumes.txt" : "cleaned_job_description.csv";
     string skillsPrompt = isEmployer ? "Enter Required Skills for the job (comma-separated): " : "Enter Your Skills (comma-separated): ";
     cout << skillsPrompt;
     string skillsStr;

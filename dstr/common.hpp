@@ -8,7 +8,6 @@
 #include <sstream>
 #include <chrono>
 #include <iomanip>
-#include <algorithm>
 
 using namespace std;
 
@@ -36,7 +35,7 @@ bool binarySearchSkill(const string sk[20], int n, const string& target);
 bool linearSearchSkill(const string sk[20], int n, const string& target);
 void matchArray(const Resume arr[], int size, const string userSk[], int userN, Match m[], int& mSize, bool useBin);
 void matchList(Node* head, const string userSk[], int userN, Match m[], int& mSize, bool useBin);
-void printMatches(const Match m[], int mSize, bool isEmployer);
+void printMatches(const Match m[], int mSize, bool isEmployer, int totalSize);
 
 Node* mergeList(Node* a, Node* b);
 Node* mergeSortList(Node* head);

@@ -14,7 +14,6 @@ void selectionSortList(Node*& head) {
             }
             curr = curr->next;
         }
-        // Swap data
         swap(start->data, maxN->data);
         start = start->next;
     }
@@ -39,14 +38,14 @@ void runListSelection(const string userSkills[], int userNum, const string& file
     cout << "Sort time (Selection Sort): " << sortDur << " ms" << endl;
 
     auto matchStart = chrono::high_resolution_clock::now();
-    Match matches[100];
+    Match matches[10000];
     int mSize = 0;
     matchList(head, userSkills, userNum, matches, mSize, false);
     auto matchEnd = chrono::high_resolution_clock::now();
     auto matchDur = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
     cout << "Match time: " << matchDur << " ms" << endl;
 
-    printMatches(matches, mSize, isEmployer);
+    printMatches(matches, mSize, isEmployer, size);
 
     freeList(head);
 }
