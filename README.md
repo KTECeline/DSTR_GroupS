@@ -1,7 +1,9 @@
 # DSTR_GroupS
-cmd to compile all files in cmd: g++ main.cpp helper.cpp arrayMerge.cpp arrayBinary.cpp linkedMerge.cpp linkedBinary.cpp -o jobmatch
+cmd to compile all files in cmd: 
+im in dstr folder now
+g++ main.cpp helpers.cpp array_merge.cpp array_selection.cpp list_merge.cpp list_selection.cpp -o jobmat
 
-then to run the program: ./jobmatch
+then to run the program: ./jobmat
 
 
 you guys is all placeholders, not the real thing, pls do it on ur own a. 
