@@ -1,5 +1,6 @@
 // list_selection.cpp
 #include "common.hpp"
+#include "performance.hpp"
 
 void selectionSortList(Node*& head) {
     if (!head) return;
@@ -26,28 +27,32 @@ void runListSelection(const string userSkills[], int userNum, const string& file
     auto loadStart = chrono::high_resolution_clock::now();
     Node* head = nullptr;
     loadList(head, filename, isJob);
-    auto loadEnd = chrono::high_resolution_clock::now();
-    loadTime = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
+    PerformanceMeasurer measurer;
+    loadTime = measurer.end("Load", countList(head));
+    
+    auto selectionSortWrapper = [](Node* head) -> Node* {
+        selectionSortList(head);
+        return head;
+    };
+    
+    auto result = measureAndExecuteOperationsList(
+        head,
+        countList(head),
+        userSkills,
+        userNum,
+        isEmployer,
+        jobTitle,
+        selectionSortWrapper,
+        loadTime,
+        sortTime,
+        matchTime,
+        false  // Use linear search for selection sort
+    );
+    
     int size = countList(head);
-    cout << "Load time: " << loadTime << " ms (" << size << " entries)" << endl;
+    printMatches(result.matches, result.mSize, isEmployer, size);
+    writeMatchesToFile(result.matches, result.mSize, isEmployer, "matches_list_selection.txt");
 
-    auto sortStart = chrono::high_resolution_clock::now();
-    selectionSortList(head);
-    auto sortEnd = chrono::high_resolution_clock::now();
-    sortTime = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort time: " << sortTime << " ms" << endl;
-
-    auto matchStart = chrono::high_resolution_clock::now();
-    const int MAX_SIZE = 10000;
-    Match* matches = new Match[MAX_SIZE];
-    int mSize = 0;
-    matchList(head, userSkills, userNum, matches, mSize, false, jobTitle, isEmployer);
-    auto matchEnd = chrono::high_resolution_clock::now();
-    matchTime = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
-    cout << "Match time: " << matchTime << " ms" << endl;
-
-    printMatches(matches, mSize, isEmployer, size);
-
-    delete[] matches;
+    delete[] result.matches;
     freeList(head);
 }

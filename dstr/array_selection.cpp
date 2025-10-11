@@ -1,5 +1,6 @@
 // array_selection.cpp
 #include "common.hpp"
+#include "performance.hpp"
 
 void selectionSortArray(Resume arr[], int n) {
     for (int i = 0; i < n - 1; ++i) {
@@ -33,25 +34,28 @@ void runArraySelection(const string userSkills[], int userNum, const string& fil
         if (arr[size].numSkills > 0) ++size;
     }
     file.close();
-    auto loadEnd = chrono::high_resolution_clock::now();
-    loadTime = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
-    cout << "Load time: " << loadTime << " ms (" << size << " entries)" << endl;
-
-    auto sortStart = chrono::high_resolution_clock::now();
-    if (size > 0) selectionSortArray(arr, size);
-    auto sortEnd = chrono::high_resolution_clock::now();
-    sortTime = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort time: " << sortTime << " ms" << endl;
-
-    auto matchStart = chrono::high_resolution_clock::now();
-    Match* matches = new Match[MAX_SIZE];
-    int mSize = 0;
-    matchArray(arr, size, userSkills, userNum, matches, mSize, false, jobTitle, isEmployer);
-    auto matchEnd = chrono::high_resolution_clock::now();
-    matchTime = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
-    cout << "Match time: " << matchTime << " ms" << endl;
-
+    PerformanceMeasurer measurer;
+    loadTime = measurer.end("Load", size);
+    
+    // Use the function to handle sort and match operations
+    auto result = measureAndExecuteOperations(
+        arr,
+        size,
+        userSkills,
+        userNum,
+        isEmployer,
+        jobTitle,
+        selectionSortArray,
+        loadTime,
+        sortTime,
+        matchTime
+    );
+    
+    Match* matches = result.matches;
+    int mSize = result.mSize;
+    
     printMatches(matches, mSize, isEmployer, size);
+    writeMatchesToFile(matches, mSize, isEmployer, "matches_array_selection.txt");
 
     delete[] arr;
     delete[] matches;

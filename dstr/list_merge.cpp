@@ -1,5 +1,6 @@
 // list_merge.cpp
 #include "common.hpp"
+#include "performance.hpp"
 
 void runListMerge(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle, double& loadTime, double& sortTime, double& matchTime) {
     bool isJob = !isEmployer;
@@ -8,28 +9,27 @@ void runListMerge(const string userSkills[], int userNum, const string& filename
     auto loadStart = chrono::high_resolution_clock::now();
     Node* head = nullptr;
     loadList(head, filename, isJob);
-    auto loadEnd = chrono::high_resolution_clock::now();
-    loadTime = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
+    PerformanceMeasurer measurer;
+    loadTime = measurer.end("Load", countList(head));
+    
+    auto result = measureAndExecuteOperationsList(
+        head,
+        countList(head),
+        userSkills,
+        userNum,
+        isEmployer,
+        jobTitle,
+        mergeSortList,
+        loadTime,
+        sortTime,
+        matchTime,
+        true  // Use binary search for merge sort
+    );
+    
     int size = countList(head);
-    cout << "Load time: " << loadTime << " ms (" << size << " entries)" << endl;
-
-    auto sortStart = chrono::high_resolution_clock::now();
-    if (head) head = mergeSortList(head);
-    auto sortEnd = chrono::high_resolution_clock::now();
-    sortTime = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort time: " << sortTime << " ms" << endl;
-
-    auto matchStart = chrono::high_resolution_clock::now();
-    const int MAX_SIZE = 10000;
-    Match* matches = new Match[MAX_SIZE];
-    int mSize = 0;
-    matchList(head, userSkills, userNum, matches, mSize, true, jobTitle, isEmployer);
-    auto matchEnd = chrono::high_resolution_clock::now();
-    matchTime = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
-    cout << "Match time: " << matchTime << " ms" << endl;
-
-    printMatches(matches, mSize, isEmployer, size);
-
-    delete[] matches;
+    printMatches(result.matches, result.mSize, isEmployer, size);
+    writeMatchesToFile(result.matches, result.mSize, isEmployer, "matches_list_merge.txt");
+    
+    delete[] result.matches;
     freeList(head);
 }

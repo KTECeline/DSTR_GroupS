@@ -1,5 +1,6 @@
 // array_merge.cpp
 #include "common.hpp"
+#include "performance.hpp"
 #include <fstream>
 
 void mergeSortArray(Resume arr[], int left, int right) {
@@ -50,42 +51,31 @@ void runArrayMerge(const string userSkills[], int userNum, const string& filenam
         if (arr[size].numSkills > 0) ++size;
     }
     file.close();
-    auto loadEnd = chrono::high_resolution_clock::now();
-    loadTime = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
-    cout << "Load time: " << loadTime << " ms (" << size << " entries)" << endl;
+    PerformanceMeasurer measurer;
+    loadTime = measurer.end("Load", size);
 
-    auto sortStart = chrono::high_resolution_clock::now();
-    if (size > 0) mergeSortArray(arr, 0, size - 1);
-    auto sortEnd = chrono::high_resolution_clock::now();
-    sortTime = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort time: " << sortTime << " ms" << endl;
-
-    auto matchStart = chrono::high_resolution_clock::now();
-    Match* matches = new Match[MAX_SIZE];
-    int mSize = 0;
-    matchArray(arr, size, userSkills, userNum, matches, mSize, true, jobTitle, isEmployer);
-    auto matchEnd = chrono::high_resolution_clock::now();
-    matchTime = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
-    cout << "Match time: " << matchTime << " ms" << endl;
-
+    auto mergeSortWrapper = [](Resume arr[], int size) {
+        if (size > 0) mergeSortArray(arr, 0, size - 1);
+    };
+    
+    auto result = measureAndExecuteOperations(
+        arr,
+        size,
+        userSkills,
+        userNum,
+        isEmployer,
+        jobTitle,
+        mergeSortWrapper,
+        loadTime,
+        sortTime,
+        matchTime
+    );
+    
+    Match* matches = result.matches;
+    int mSize = result.mSize;
+    
     printMatches(matches, mSize, isEmployer, size);
-
-    // Write all to file
-    ofstream outFile("matches_array_merge.txt");
-    if (outFile.is_open()) {
-        string header = isEmployer ? "All Matching Candidates:" : "All Matching Jobs:";
-        outFile << header << endl;
-        for (int i = 0; i < mSize; ++i) {
-            string label = isEmployer ? "Candidate " : "Job ";
-            outFile << label << (matches[i].id + 1) << ": " << matches[i].fullDesc << " - " 
-                    << fixed << setprecision(2) << matches[i].perc << "% match" << endl;
-        }
-        if (mSize == 0) outFile << "No matches found." << endl;
-        outFile.close();
-        cout << "All matches saved to matches_array_merge.txt" << endl;
-    } else {
-        cout << "Error opening file for writing matches." << endl;
-    }
+    writeMatchesToFile(matches, mSize, isEmployer, "matches_array_merge.txt");
 
     delete[] arr;
     delete[] matches;
