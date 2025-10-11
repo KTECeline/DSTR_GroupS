@@ -62,9 +62,18 @@ bool linearSearchSkill(const string sk[20], int n, const string& target) {
     return false;
 }
 
-void matchArray(const Resume arr[], int size, const string userSk[], int userN, Match m[], int& mSize, bool useBin) {
+void matchArray(const Resume arr[], int size, const string userSk[], int userN, Match m[], int& mSize, bool useBin, const string& jobTitle, bool isEmployer) {
     mSize = 0;
     for (int i = 0; i < size; ++i) {
+        bool titleMatch = true;
+        if (!isEmployer && !jobTitle.empty()) {
+            string lowerTitle = arr[i].title;
+            for (char& c : lowerTitle) c = tolower(c);
+            string lowerJob = jobTitle;
+            for (char& c : lowerJob) c = tolower(c);
+            if (lowerTitle.find(lowerJob) == string::npos) titleMatch = false;
+        }
+        if (!titleMatch) continue;
         int matched = 0;
         for (int j = 0; j < userN; ++j) {
             bool found = useBin ? binarySearchSkill(arr[i].skills, arr[i].numSkills, userSk[j])
@@ -87,11 +96,24 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN, 
     }
 }
 
-void matchList(Node* head, const string userSk[], int userN, Match m[], int& mSize, bool useBin) {
+void matchList(Node* head, const string userSk[], int userN, Match m[], int& mSize, bool useBin, const string& jobTitle, bool isEmployer) {
     mSize = 0;
     int id = 0;
     Node* curr = head;
     while (curr) {
+        bool titleMatch = true;
+        if (!isEmployer && !jobTitle.empty()) {
+            string lowerTitle = curr->data.title;
+            for (char& c : lowerTitle) c = tolower(c);
+            string lowerJob = jobTitle;
+            for (char& c : lowerJob) c = tolower(c);
+            if (lowerTitle.find(lowerJob) == string::npos) titleMatch = false;
+        }
+        if (!titleMatch) {
+            ++id;
+            curr = curr->next;
+            continue;
+        }
         int matched = 0;
         for (int j = 0; j < userN; ++j) {
             bool found = useBin ? binarySearchSkill(curr->data.skills, curr->data.numSkills, userSk[j])

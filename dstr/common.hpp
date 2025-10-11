@@ -8,6 +8,7 @@
 #include <sstream>
 #include <chrono>
 #include <iomanip>
+#include <cctype>
 
 using namespace std;
 
@@ -33,8 +34,8 @@ struct Match {
 void parseSkills(string line, Resume& res, bool isJob);
 bool binarySearchSkill(const string sk[20], int n, const string& target);
 bool linearSearchSkill(const string sk[20], int n, const string& target);
-void matchArray(const Resume arr[], int size, const string userSk[], int userN, Match m[], int& mSize, bool useBin);
-void matchList(Node* head, const string userSk[], int userN, Match m[], int& mSize, bool useBin);
+void matchArray(const Resume arr[], int size, const string userSk[], int userN, Match m[], int& mSize, bool useBin, const string& jobTitle, bool isEmployer);
+void matchList(Node* head, const string userSk[], int userN, Match m[], int& mSize, bool useBin, const string& jobTitle, bool isEmployer);
 void printMatches(const Match m[], int mSize, bool isEmployer, int totalSize);
 
 Node* mergeList(Node* a, Node* b);
@@ -43,10 +44,10 @@ void loadList(Node*& head, const string filename, bool isJob);
 void freeList(Node* head);
 int countList(Node* head);
 
-void runArrayMerge(const string userSkills[], int userNum, const string& filename, bool isEmployer);
-void runArraySelection(const string userSkills[], int userNum, const string& filename, bool isEmployer);
-void runListMerge(const string userSkills[], int userNum, const string& filename, bool isEmployer);
-void runListSelection(const string userSkills[], int userNum, const string& filename, bool isEmployer);
-void runAll(const string userSkills[], int userNum, const string& filename, bool isEmployer);
+void runArrayMerge(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle, double& loadTime, double& sortTime, double& matchTime);
+void runArraySelection(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle, double& loadTime, double& sortTime, double& matchTime);
+void runListMerge(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle, double& loadTime, double& sortTime, double& matchTime);
+void runListSelection(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle, double& loadTime, double& sortTime, double& matchTime);
+void runAll(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle);
 
 #endif

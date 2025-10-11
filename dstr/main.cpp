@@ -1,11 +1,25 @@
 // main.cpp
 #include "common.hpp"
 
-void runAll(const string userSkills[], int userNum, const string& filename, bool isEmployer) {
-    runArrayMerge(userSkills, userNum, filename, isEmployer);
-    runArraySelection(userSkills, userNum, filename, isEmployer);
-    runListMerge(userSkills, userNum, filename, isEmployer);
-    runListSelection(userSkills, userNum, filename, isEmployer);
+void runAll(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle) {
+    double am_load, am_sort, am_match;
+    double as_load, as_sort, as_match;
+    double lm_load, lm_sort, lm_match;
+    double ls_load, ls_sort, ls_match;
+
+    runArrayMerge(userSkills, userNum, filename, isEmployer, jobTitle, am_load, am_sort, am_match);
+    runArraySelection(userSkills, userNum, filename, isEmployer, jobTitle, as_load, as_sort, as_match);
+    runListMerge(userSkills, userNum, filename, isEmployer, jobTitle, lm_load, lm_sort, lm_match);
+    runListSelection(userSkills, userNum, filename, isEmployer, jobTitle, ls_load, ls_sort, ls_match);
+
+    // Simple ASCII table for comparison
+    cout << "\nPerformance Comparison Table (ms):" << endl;
+    cout << "Method                  | Load  | Sort  | Match" << endl;
+    cout << "------------------------|-------|-------|------" << endl;
+    cout << "Array Merge + Bin Search| " << fixed << setprecision(0) << am_load << "   | " << am_sort << "   | " << am_match << endl;
+    cout << "Array Selection + Lin Sr| " << as_load << "   | " << as_sort << "   | " << as_match << endl;
+    cout << "List Merge + Bin Search | " << lm_load << "   | " << lm_sort << "   | " << lm_match << endl;
+    cout << "List Selection + Lin Sr | " << ls_load << "   | " << ls_sort << "   | " << ls_match << endl;
 }
 
 int main() {
@@ -18,6 +32,11 @@ int main() {
     bool isEmployer = (role == 'e' || role == 'E');
     bool isJob = !isEmployer;
     string filename = isEmployer ? "cleaned_resumes.txt" : "cleaned_job_description.csv";
+    string jobTitle = "";
+    if (!isEmployer) {
+        cout << "Enter Job Title to match: ";
+        getline(cin, jobTitle);
+    }
     string skillsPrompt = isEmployer ? "Enter Required Skills for the job (comma-separated): " : "Enter Your Skills (comma-separated): ";
     cout << skillsPrompt;
     string skillsStr;
@@ -43,11 +62,27 @@ int main() {
     cin.ignore();
 
     switch (choice) {
-        case 1: runArrayMerge(userSkills, userNum, filename, isEmployer); break;
-        case 2: runArraySelection(userSkills, userNum, filename, isEmployer); break;
-        case 3: runListMerge(userSkills, userNum, filename, isEmployer); break;
-        case 4: runListSelection(userSkills, userNum, filename, isEmployer); break;
-        case 5: runAll(userSkills, userNum, filename, isEmployer); break;
+        case 1: {
+            double dummy;
+            runArrayMerge(userSkills, userNum, filename, isEmployer, jobTitle, dummy, dummy, dummy);
+            break;
+        }
+        case 2: {
+            double dummy;
+            runArraySelection(userSkills, userNum, filename, isEmployer, jobTitle, dummy, dummy, dummy);
+            break;
+        }
+        case 3: {
+            double dummy;
+            runListMerge(userSkills, userNum, filename, isEmployer, jobTitle, dummy, dummy, dummy);
+            break;
+        }
+        case 4: {
+            double dummy;
+            runListSelection(userSkills, userNum, filename, isEmployer, jobTitle, dummy, dummy, dummy);
+            break;
+        }
+        case 5: runAll(userSkills, userNum, filename, isEmployer, jobTitle); break;
         default: cout << "Invalid choice." << endl;
     }
     return 0;

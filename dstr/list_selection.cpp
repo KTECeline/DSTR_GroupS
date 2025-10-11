@@ -19,7 +19,7 @@ void selectionSortList(Node*& head) {
     }
 }
 
-void runListSelection(const string userSkills[], int userNum, const string& filename, bool isEmployer) {
+void runListSelection(const string userSkills[], int userNum, const string& filename, bool isEmployer, const string& jobTitle, double& loadTime, double& sortTime, double& matchTime) {
     bool isJob = !isEmployer;
     cout << "\n--- Linked List + Selection Sort + Linear Search ---" << endl;
 
@@ -27,25 +27,27 @@ void runListSelection(const string userSkills[], int userNum, const string& file
     Node* head = nullptr;
     loadList(head, filename, isJob);
     auto loadEnd = chrono::high_resolution_clock::now();
-    auto loadDur = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
+    loadTime = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
     int size = countList(head);
-    cout << "Load time: " << loadDur << " ms (" << size << " entries)" << endl;
+    cout << "Load time: " << loadTime << " ms (" << size << " entries)" << endl;
 
     auto sortStart = chrono::high_resolution_clock::now();
     selectionSortList(head);
     auto sortEnd = chrono::high_resolution_clock::now();
-    auto sortDur = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort time (Selection Sort): " << sortDur << " ms" << endl;
+    sortTime = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
+    cout << "Sort time: " << sortTime << " ms" << endl;
 
     auto matchStart = chrono::high_resolution_clock::now();
-    Match matches[10000];
+    const int MAX_SIZE = 10000;
+    Match* matches = new Match[MAX_SIZE];
     int mSize = 0;
-    matchList(head, userSkills, userNum, matches, mSize, false);
+    matchList(head, userSkills, userNum, matches, mSize, false, jobTitle, isEmployer);
     auto matchEnd = chrono::high_resolution_clock::now();
-    auto matchDur = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
-    cout << "Match time: " << matchDur << " ms" << endl;
+    matchTime = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
+    cout << "Match time: " << matchTime << " ms" << endl;
 
     printMatches(matches, mSize, isEmployer, size);
 
+    delete[] matches;
     freeList(head);
 }
