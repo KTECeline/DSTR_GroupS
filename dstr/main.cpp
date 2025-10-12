@@ -7,9 +7,16 @@ void runAll(const string userSkills[], int userNum, const string& filename, bool
     double lm_load, lm_sort, lm_match;
     double ls_load, ls_sort, ls_match;
 
+    cout << "\n=== Running Array Merge Sort ===\n";
     runArrayMerge(userSkills, userNum, filename, isEmployer, jobTitle, am_load, am_sort, am_match);
+    
+    cout << "\n=== Running Array Selection Sort ===\n";
     runArraySelection(userSkills, userNum, filename, isEmployer, jobTitle, as_load, as_sort, as_match);
+    
+    cout << "\n=== Running List Merge Sort ===\n";
     runListMerge(userSkills, userNum, filename, isEmployer, jobTitle, lm_load, lm_sort, lm_match);
+    
+    cout << "\n=== Running List Selection Sort ===\n";
     runListSelection(userSkills, userNum, filename, isEmployer, jobTitle, ls_load, ls_sort, ls_match);
 
     // Simple ASCII table for comparison
