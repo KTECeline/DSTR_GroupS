@@ -23,7 +23,8 @@ void writeMatchesToFile(const Match* matches, int mSize, bool isEmployer, const 
         outFile.close();
         std::cout << "All matches saved to " << filename << std::endl;
     } else {
-        std::cout << "Error opening file for writing matches." << std::endl;
+            std::cout << "Error opening file for writing matches." << std::endl;
+        }
     }
 
 class PerformanceMeasurer {
@@ -66,7 +67,8 @@ PerformanceResult measureAndExecuteOperations(
     double& loadTime,
     double& sortTime,
     double& matchTime
-) {
+) 
+{
     PerformanceMeasurer measurer;
     const int MAX_SIZE = 10000;
     
