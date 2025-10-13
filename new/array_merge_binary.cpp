@@ -1,8 +1,13 @@
 // main.cpp
 #include "common.hpp"
 #include <fstream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <iostream>
+using namespace std;
 
-
+// -------------------- Utility Functions --------------------
 int splitString(const string& line, string tokens[], int maxTokens) {
     int count = 0;
     stringstream ss(line);
@@ -39,19 +44,17 @@ void parseSkills(string line, Resume& res, bool isJob) {
     // Bubble sort skills alphabetically
     for (int i = 0; i < res.numSkills - 1; ++i) {
         for (int j = 0; j < res.numSkills - i - 1; ++j) {
-            if (res.skills[j] > res.skills[j + 1]) {
-                swap(res.skills[j], res.skills[j + 1]);
-            }
+            if (res.skills[j] > res.skills[j + 1]) swap(res.skills[j], res.skills[j + 1]);
         }
     }
 }
 
-void printMatches(const Match m[], int mSize, bool isEmployer, int totalSize) {
+void printMatches(const Match m[], int mSize, bool isEmployer) {
     string header = isEmployer ? "Matching Candidates:" : "Matching Jobs:";
     string label = isEmployer ? "Candidate " : "Job ";
     cout << header << endl;
     for (int i = 0; i < mSize && i < 10; ++i) {
-        cout << label << (m[i].id + 1) << ": " << m[i].fullDesc << " - " 
+        cout << label << (m[i].id + 1) << ": " << m[i].fullDesc << " - "
              << fixed << setprecision(2) << m[i].perc << "% match" << endl;
     }
     if (mSize > 10) {
@@ -91,11 +94,8 @@ void mergeSortArray(Resume arr[], int left, int right) {
         for (int j = 0; j < n2; ++j) R[j] = arr[mid + 1 + j];
         int i = 0, j = 0, k = left;
         while (i < n1 && j < n2) {
-            if (L[i].numSkills >= R[j].numSkills) {
-                arr[k++] = L[i++];
-            } else {
-                arr[k++] = R[j++];
-            }
+            if (L[i].numSkills >= R[j].numSkills) arr[k++] = L[i++];
+            else arr[k++] = R[j++];
         }
         while (i < n1) arr[k++] = L[i++];
         while (j < n2) arr[k++] = R[j++];
@@ -104,26 +104,24 @@ void mergeSortArray(Resume arr[], int left, int right) {
     }
 }
 
-void matchArray(const Resume arr[], int size, const string userSk[], int userN, Match m[], int& mSize, bool useBin, const string& jobTitle, bool isEmployer) {
+void matchArray(const Resume arr[], int size, const string userSk[], int userN,
+                Match m[], int& mSize, bool useBin, const string& jobTitle, bool isEmployer) {
     mSize = 0;
     for (int i = 0; i < size; ++i) {
         bool titleMatch = true;
         if (!isEmployer && !jobTitle.empty()) {
             string lowerTitle = arr[i].title;
-            for (char& c : lowerTitle) c = tolower(c);
             string lowerJob = jobTitle;
+            for (char& c : lowerTitle) c = tolower(c);
             for (char& c : lowerJob) c = tolower(c);
             if (lowerTitle.find(lowerJob) == string::npos) titleMatch = false;
         }
         if (!titleMatch) continue;
         int matched = 0;
         for (int j = 0; j < userN; ++j) {
-            bool found = false;
-            if (useBin) {
-                found = binarySearchSkill(arr[i].skills, arr[i].numSkills, userSk[j]);
-            } else {
-                found = linearSearchSkill(arr[i].skills, arr[i].numSkills, userSk[j]);
-            }
+            bool found = useBin
+                         ? binarySearchSkill(arr[i].skills, arr[i].numSkills, userSk[j])
+                         : linearSearchSkill(arr[i].skills, arr[i].numSkills, userSk[j]);
             if (found) ++matched;
         }
         double perc = userN > 0 ? (static_cast<double>(matched) / userN) * 100.0 : 0.0;
@@ -134,7 +132,7 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN, 
             ++mSize;
         }
     }
-    // Bubble sort matches by perc descending
+    // Sort matches descending by perc
     for (int i = 0; i < mSize - 1; ++i) {
         for (int j = 0; j < mSize - i - 1; ++j) {
             if (m[j].perc < m[j + 1].perc) swap(m[j], m[j + 1]);
@@ -142,22 +140,28 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN, 
     }
 }
 
+// -------------------- Main Program --------------------
 int main() {
+    auto totalStart = chrono::high_resolution_clock::now();
+
     cout << "Job Matching System - Array + Merge Sort + Binary Search" << endl;
-    
+
     char role;
     cout << "Are you an Employer (e) looking for candidates or Employee (m) looking for jobs? ";
     cin >> role;
     cin.ignore();
     bool isEmployer = (role == 'e' || role == 'E');
     bool isJob = !isEmployer;
+
     string filename = isEmployer ? "cleaned_resumes.txt" : "cleaned_job_description.csv";
     string jobTitle = "";
     if (!isEmployer) {
         cout << "Enter Job Title to match: ";
         getline(cin, jobTitle);
     }
-    string skillsPrompt = isEmployer ? "Enter Required Skills for the job (comma-separated): " : "Enter Your Skills (comma-separated): ";
+
+    string skillsPrompt = isEmployer ? "Enter Required Skills for the job (comma-separated): "
+                                     : "Enter Your Skills (comma-separated): ";
     cout << skillsPrompt;
     string skillsStr;
     getline(cin, skillsStr);
@@ -176,34 +180,36 @@ int main() {
         }
     }
 
-    // Load data into array
+    // -------------------- Load Data --------------------
+    auto loadStart = chrono::high_resolution_clock::now();
+
     const int MAX_SIZE = 10000;
     Resume* arr = new Resume[MAX_SIZE];
     int size = 0;
     ifstream file(filename);
-    string line;
     bool skipHeader = isJob;
-    while (getline(file, line)) {
-        if (line.empty()) continue;
-        if (skipHeader) {
-            skipHeader = false;
-            continue;
-        }
+    while (getline(file, token)) {
+        if (token.empty()) continue;
+        if (skipHeader) { skipHeader = false; continue; }
         if (size >= MAX_SIZE) break;
-        parseSkills(line, arr[size], isJob);
+        parseSkills(token, arr[size], isJob);
         if (arr[size].numSkills > 0) ++size;
     }
     file.close();
+
+    auto loadEnd = chrono::high_resolution_clock::now();
+    auto loadDur = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
+    cout << "Data load time: " << loadDur << " ms" << endl;
     cout << "Loaded " << size << " entries" << endl;
 
-    // Merge Sort the array (by numSkills descending)
+    // -------------------- Sort Data --------------------
     auto sortStart = chrono::high_resolution_clock::now();
     if (size > 0) mergeSortArray(arr, 0, size - 1);
     auto sortEnd = chrono::high_resolution_clock::now();
     auto sortDur = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
     cout << "Sort time: " << sortDur << " ms" << endl;
 
-    // Binary Search and Matching
+    // -------------------- Match Skills --------------------
     auto matchStart = chrono::high_resolution_clock::now();
     Match* matches = new Match[MAX_SIZE];
     int mSize = 0;
@@ -212,16 +218,17 @@ int main() {
     auto matchDur = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
     cout << "Match time: " << matchDur << " ms" << endl;
 
-    printMatches(matches, mSize, isEmployer, size);
+    // -------------------- Print Matches --------------------
+    printMatches(matches, mSize, isEmployer);
 
-    // Write all to file
+    // -------------------- Save Matches --------------------
     ofstream outFile("matches.txt");
     if (outFile.is_open()) {
         string header = isEmployer ? "All Matching Candidates:" : "All Matching Jobs:";
         outFile << header << endl;
         for (int i = 0; i < mSize; ++i) {
             string label = isEmployer ? "Candidate " : "Job ";
-            outFile << label << (matches[i].id + 1) << ": " << matches[i].fullDesc << " - " 
+            outFile << label << (matches[i].id + 1) << ": " << matches[i].fullDesc << " - "
                     << fixed << setprecision(2) << matches[i].perc << "% match" << endl;
         }
         if (mSize == 0) outFile << "No matches found." << endl;
@@ -230,6 +237,11 @@ int main() {
     } else {
         cout << "Error opening file for writing matches." << endl;
     }
+
+    // -------------------- Total Execution Time --------------------
+    auto totalEnd = chrono::high_resolution_clock::now();
+    auto totalDur = chrono::duration_cast<chrono::milliseconds>(totalEnd - totalStart).count();
+    cout << "Total execution time: " << totalDur << " ms" << endl;
 
     delete[] arr;
     delete[] matches;
