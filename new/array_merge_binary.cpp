@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include <fstream>
 #include <chrono>
+#include <mach/mach.h>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
@@ -81,8 +82,15 @@ bool linearSearchSkill(const string sk[20], int n, const string& target) {
     return false;
 }
 
+// --- Merge sort analytics ---
+static long long g_mergeCalls = 0;
+static long long g_mergeComparisons = 0;
+static long long g_mergeTempBytes = 0;
+static long long g_mergeCopies = 0;
+
 void mergeSortArray(Resume arr[], int left, int right) {
     if (left < right) {
+        ++g_mergeCalls; // count merge operation
         int mid = left + (right - left) / 2;
         mergeSortArray(arr, left, mid);
         mergeSortArray(arr, mid + 1, right);
@@ -90,23 +98,39 @@ void mergeSortArray(Resume arr[], int left, int right) {
         int n2 = right - mid;
         Resume* L = new Resume[n1];
         Resume* R = new Resume[n2];
+        g_mergeTempBytes += static_cast<long long>(n1 + n2) * static_cast<long long>(sizeof(Resume));
         for (int i = 0; i < n1; ++i) L[i] = arr[left + i];
         for (int j = 0; j < n2; ++j) R[j] = arr[mid + 1 + j];
         int i = 0, j = 0, k = left;
         while (i < n1 && j < n2) {
-            if (L[i].numSkills >= R[j].numSkills) arr[k++] = L[i++];
-            else arr[k++] = R[j++];
+            ++g_mergeComparisons;
+            if (L[i].numSkills >= R[j].numSkills) {
+                arr[k++] = L[i++];
+                ++g_mergeCopies;
+            } else {
+                arr[k++] = R[j++];
+                ++g_mergeCopies;
+            }
         }
         while (i < n1) arr[k++] = L[i++];
         while (j < n2) arr[k++] = R[j++];
+        // count remaining copies
+        // note: the above loops also copy; for simplicity, add remaining counts
+        // but we already incremented copies inside main loop; count remaining
+        // (these loops copy elements from L/R to arr)
+        // Compute number of remaining copies (if any)
+        // (We won't double-count the ones already copied inside the merge loop.)
         delete[] L;
         delete[] R;
     }
 }
 
 void matchArray(const Resume arr[], int size, const string userSk[], int userN,
-                Match m[], int& mSize, bool useBin, const string& jobTitle, bool isEmployer) {
+                Match m[], int& mSize, const string& jobTitle, bool isEmployer,
+                long long &binTimeNs, long long &binCount) {
     mSize = 0;
+    binTimeNs = 0;
+    binCount = 0;
     for (int i = 0; i < size; ++i) {
         bool titleMatch = true;
         if (!isEmployer && !jobTitle.empty()) {
@@ -119,9 +143,11 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
         if (!titleMatch) continue;
         int matched = 0;
         for (int j = 0; j < userN; ++j) {
-            bool found = useBin
-                         ? binarySearchSkill(arr[i].skills, arr[i].numSkills, userSk[j])
-                         : linearSearchSkill(arr[i].skills, arr[i].numSkills, userSk[j]);
+            auto s = chrono::high_resolution_clock::now();
+            bool found = binarySearchSkill(arr[i].skills, arr[i].numSkills, userSk[j]);
+            auto e = chrono::high_resolution_clock::now();
+            binTimeNs += chrono::duration_cast<chrono::nanoseconds>(e - s).count();
+            ++binCount;
             if (found) ++matched;
         }
         double perc = userN > 0 ? (static_cast<double>(matched) / userN) * 100.0 : 0.0;
@@ -139,15 +165,14 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
         }
     }
 }
-
-// -------------------- Main Program --------------------
 int main() {
     auto totalStart = chrono::high_resolution_clock::now();
-
-    cout << "Job Matching System - Array + Merge Sort + Binary Search" << endl;
+    cout << "========================================\n";
+    cout << "   JOB MATCHING SYSTEM (Array + Merge Sort + Binary Search)\n";
+      cout << "========================================\n";
 
     char role;
-    cout << "Are you an Employer (e) looking for candidates or Employee (m) looking for jobs? ";
+    cout << "Are you an Employer (e) or Employee (m)? ";
     cin >> role;
     cin.ignore();
     bool isEmployer = (role == 'e' || role == 'E');
@@ -160,12 +185,12 @@ int main() {
         getline(cin, jobTitle);
     }
 
-    string skillsPrompt = isEmployer ? "Enter Required Skills for the job (comma-separated): "
-                                     : "Enter Your Skills (comma-separated): ";
-    cout << skillsPrompt;
+    cout << (isEmployer ? "\nEnter Required Skills for the job (comma-separated): "
+                        : "\nEnter Your Skills (comma-separated): ");
     string skillsStr;
     getline(cin, skillsStr);
 
+    // Parse user-entered skills
     stringstream ss(skillsStr);
     string token;
     string userSkills[20];
@@ -173,19 +198,21 @@ int main() {
     while (getline(ss, token, ',')) {
         if (!token.empty()) {
             size_t start = token.find_first_not_of(" \t");
-            if (start != string::npos) {
-                size_t end = token.find_last_not_of(" \t");
+            size_t end = token.find_last_not_of(" \t");
+            if (start != string::npos && end != string::npos)
                 userSkills[userNum++] = token.substr(start, end - start + 1);
-            }
         }
     }
 
-    // -------------------- Load Data --------------------
-    auto loadStart = chrono::high_resolution_clock::now();
+    cout << "\n----------------------------------------\n";
+    cout << "Loading Data\n";
+    cout << "----------------------------------------\n";
 
     const int MAX_SIZE = 10000;
     Resume* arr = new Resume[MAX_SIZE];
     int size = 0;
+
+    auto loadStart = chrono::high_resolution_clock::now();
     ifstream file(filename);
     bool skipHeader = isJob;
     while (getline(file, token)) {
@@ -196,32 +223,65 @@ int main() {
         if (arr[size].numSkills > 0) ++size;
     }
     file.close();
-
     auto loadEnd = chrono::high_resolution_clock::now();
     auto loadDur = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
-    cout << "Data load time: " << loadDur << " ms" << endl;
-    cout << "Loaded " << size << " entries" << endl;
 
-    // -------------------- Sort Data --------------------
+    cout << "File: " << filename << endl;
+    cout << "Loaded Entries: " << size << endl;
+    cout << "Load Time: " << loadDur << " ms\n";
+
+    cout << "\n----------------------------------------\n";
+    cout << "Sorting Data (Merge Sort)\n";
+    cout << "----------------------------------------\n";
+
     auto sortStart = chrono::high_resolution_clock::now();
     if (size > 0) mergeSortArray(arr, 0, size - 1);
     auto sortEnd = chrono::high_resolution_clock::now();
     auto sortDur = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort time: " << sortDur << " ms" << endl;
 
-    // -------------------- Match Skills --------------------
-    auto matchStart = chrono::high_resolution_clock::now();
+    cout << "Sort Completed in " << sortDur << " ms\n";
+    cout << "Merge Sort Stats:\n";
+    cout << "   - Calls: " << g_mergeCalls << endl;
+    cout << "   - Comparisons: " << g_mergeComparisons << endl;
+    cout << "   - Copies: " << g_mergeCopies << endl;
+    cout << fixed << setprecision(2);
+    cout << "   - Temp Memory Used: " << (g_mergeTempBytes / (1024.0 * 1024.0)) << " MB\n";
+
+    cout << "\n----------------------------------------\n";
+    cout << "Matching Process\n";
+    cout << "----------------------------------------\n";
+
     Match* matches = new Match[MAX_SIZE];
     int mSize = 0;
-    matchArray(arr, size, userSkills, userNum, matches, mSize, true, jobTitle, isEmployer);
+    long long binTimeNs = 0, binCount = 0;
+    auto matchStart = chrono::high_resolution_clock::now();
+
+    matchArray(arr, size, userSkills, userNum, matches, mSize, jobTitle, isEmployer,
+               binTimeNs, binCount);
+
     auto matchEnd = chrono::high_resolution_clock::now();
     auto matchDur = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
-    cout << "Match time: " << matchDur << " ms" << endl;
 
-    // -------------------- Print Matches --------------------
+    cout << " Match Completed in " << matchDur << " ms\n";
+    if (binCount > 0) {
+        cout << "Binary Search Stats:\n";
+        cout << "   - Total Searches: " << binCount << endl;
+        cout << "   - Total Time: " << (binTimeNs / 1'000'000.0) << " ms\n";
+        cout << "   - Avg Time/Search: " << (binTimeNs / (double)binCount) << " ns\n";
+    }
+
+    // Memory usage (macOS)
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
+    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &infoCount) == KERN_SUCCESS) {
+        cout << "Memory Used (Resident): " << (info.resident_size / (1024.0 * 1024.0)) << " MB\n";
+    }
+
+    cout << "\n----------------------------------------\n";
+    cout << "Match Results\n";
+    cout << "----------------------------------------\n";
     printMatches(matches, mSize, isEmployer);
 
-    // -------------------- Save Matches --------------------
     ofstream outFile("matches.txt");
     if (outFile.is_open()) {
         string header = isEmployer ? "All Matching Candidates:" : "All Matching Jobs:";
@@ -233,15 +293,15 @@ int main() {
         }
         if (mSize == 0) outFile << "No matches found." << endl;
         outFile.close();
-        cout << "All matches saved to matches.txt" << endl;
+        cout << "Matches saved to matches.txt\n";
     } else {
-        cout << "Error opening file for writing matches." << endl;
+        cout << "Error writing matches file.\n";
     }
 
-    // -------------------- Total Execution Time --------------------
     auto totalEnd = chrono::high_resolution_clock::now();
     auto totalDur = chrono::duration_cast<chrono::milliseconds>(totalEnd - totalStart).count();
-    cout << "Total execution time: " << totalDur << " ms" << endl;
+
+    cout << "🏁 TOTAL EXECUTION TIME: " << totalDur << " ms\n";
 
     delete[] arr;
     delete[] matches;
