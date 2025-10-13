@@ -270,7 +270,7 @@ int main() {
         cout << "   - Avg Time/Search: " << (binTimeNs / (double)binCount) << " ns\n";
     }
 
-    // Memory usage (macOS)
+    Memory usage (macOS)
     struct mach_task_basic_info info;
     mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
     if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &infoCount) == KERN_SUCCESS) {

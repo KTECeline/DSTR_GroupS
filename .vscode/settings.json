@@ -49,6 +49,7 @@
         "variant": "cpp",
         "vector": "cpp",
         "set": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "chrono": "cpp"
     }
 }
