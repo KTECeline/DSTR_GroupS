@@ -1,16 +1,17 @@
 // main.cpp
-#include "common.hpp"
-#include <fstream>
-#include <chrono>
-// #include <mach/mach.h>  // macOS memory tracking
 #ifdef _WIN32
 #include <windows.h>
 #include <psapi.h>
 #endif
+
+#include "common.hpp"
+#include <fstream>
+#include <chrono>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
 using namespace std;
+// #include <mach/mach.h>  // macOS memory tracking
 
 // -------------------- Linked List Node --------------------
 struct Node {
