@@ -1,11 +1,11 @@
+#include <windows.h>  
+#include <psapi.h>    // For memory usage
 #include "common.hpp"
 #include <fstream>
 #include <chrono>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-#include <windows.h>  
-#include <psapi.h>    // For memory usage
 
 using namespace std;
 using namespace std::chrono;
