@@ -4,7 +4,8 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-#include <windows.h>  // For memory usage on Windows
+#include <windows.h>  
+#include <psapi.h>    // For memory usage
 
 using namespace std;
 using namespace std::chrono;
@@ -110,8 +111,7 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
                 swap(m[j], m[j + 1]);
 }
 
-
-
+// -------------------- Print Matches --------------------
 void printMatches(const Match m[], int mSize, bool isEmployer) {
     string header = isEmployer ? "Matching Candidates:" : "Matching Jobs:";
     cout << "\n" << header << endl;
@@ -179,14 +179,15 @@ int main() {
     }
     file.close();
     auto loadEnd = high_resolution_clock::now();
-    cout << "Loaded Entries: " << size
-         << " | Load Time: " << duration_cast<milliseconds>(loadEnd - loadStart).count() << " ms\n";
+    long long loadTime = duration_cast<milliseconds>(loadEnd - loadStart).count();
+    cout << "Loaded Entries: " << size << " | Load Time: " << loadTime << " ms\n";
 
     cout << "\nSorting Data (Selection Sort)...\n";
     auto sortStart = high_resolution_clock::now();
     selectionSortArray(arr, size);
     auto sortEnd = high_resolution_clock::now();
-    cout << "Sort Completed in " << duration_cast<milliseconds>(sortEnd - sortStart).count() << " ms\n";
+    long long sortTime = duration_cast<milliseconds>(sortEnd - sortStart).count();
+    cout << "Sort Completed in " << sortTime << " ms\n";
 
     cout << "\nMatching...\n";
     Match* matches = new Match[MAX_SIZE];
@@ -198,7 +199,8 @@ int main() {
                linearTimeNs, linearCount);
 
     auto matchEnd = high_resolution_clock::now();
-    cout << "Match Completed in " << duration_cast<milliseconds>(matchEnd - matchStart).count() << " ms\n";
+    long long matchTime = duration_cast<milliseconds>(matchEnd - matchStart).count();
+    cout << "Match Completed in " << matchTime << " ms\n";
 
     if (linearCount > 0) {
         cout << "Linear Search Stats:\n";
@@ -207,13 +209,29 @@ int main() {
         cout << "   - Avg Time/Search: " << (linearTimeNs / (double)linearCount) << " ns\n";
     }
 
-
-
     printMatches(matches, mSize, isEmployer);
 
     auto totalEnd = high_resolution_clock::now();
-    cout << "\n🏁 TOTAL EXECUTION TIME: "
-         << duration_cast<milliseconds>(totalEnd - totalStart).count() << " ms\n";
+    long long totalTime = duration_cast<milliseconds>(totalEnd - totalStart).count();
+
+    // -------------------- Memory Usage --------------------
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    SIZE_T memUsedKB = 0;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+        memUsedKB = pmc.WorkingSetSize / 1024;
+    }
+
+    // -------------------- Performance Summary --------------------
+    cout << "\n========================================\n";
+    cout << "           PERFORMANCE SUMMARY          \n";
+    cout << "========================================\n";
+    cout << "Data Load Time     : " << loadTime << " ms\n";
+    cout << "Sort Time          : " << sortTime << " ms\n";
+    cout << "Matching Time      : " << matchTime << " ms\n";
+    cout << "Total Execution    : " << totalTime << " ms\n";
+    cout << "Memory Used        : " << fixed << setprecision(2)
+         << memUsedKB / 1024.0 << " MB\n";
+    cout << "========================================\n";
 
     delete[] arr;
     delete[] matches;
