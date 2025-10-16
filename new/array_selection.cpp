@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 using namespace std::chrono;
@@ -17,8 +18,8 @@ int splitString(const string& line, string tokens[], int maxTokens) {
     string token;
     while (getline(ss, token, ',')) {
         if (!token.empty()) {
-            token.erase(0, token.find_first_not_of(" \t"));
-            size_t last = token.find_last_not_of(" \t");
+            token.erase(0, token.find_first_not_of(" \t\r\n"));
+            size_t last = token.find_last_not_of(" \t\r\n");
             if (last != string::npos) token.erase(last + 1);
             if (count < maxTokens) tokens[count++] = token;
         }
@@ -33,9 +34,14 @@ void parseSkills(string line, Resume& res, bool isJob) {
     res.numSkills = 0;
 
     if (isJob) {
-        if (tokCount > 0) {
+        // Handle if first token is ID and second is title
+        if (tokCount > 1 && !isdigit(tokens[0][0])) {
             res.title = tokens[0];
             for (int i = 1; i < tokCount && res.numSkills < 20; ++i)
+                res.skills[res.numSkills++] = tokens[i];
+        } else if (tokCount > 1) {
+            res.title = tokens[1];
+            for (int i = 2; i < tokCount && res.numSkills < 20; ++i)
                 res.skills[res.numSkills++] = tokens[i];
         }
     } else {
@@ -60,11 +66,11 @@ void selectionSortArray(Resume arr[], int n) {
 // -------------------- Case-Insensitive Linear Search --------------------
 bool linearSearchSkill(const string sk[20], int n, const string& target) {
     string lowerTarget = target;
-    for (char& c : lowerTarget) c = tolower(c);
+    transform(lowerTarget.begin(), lowerTarget.end(), lowerTarget.begin(), ::tolower);
 
     for (int i = 0; i < n; ++i) {
         string lowerSkill = sk[i];
-        for (char& c : lowerSkill) c = tolower(c);
+        transform(lowerSkill.begin(), lowerSkill.end(), lowerSkill.begin(), ::tolower);
         if (lowerSkill == lowerTarget)
             return true;
     }
@@ -83,13 +89,19 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
 
     for (int i = 0; i < size; ++i) {
         bool titleMatch = true;
+
+        // Flexible partial job title matching for employees
         if (!isEmployer && !jobTitle.empty()) {
             string lowerTitle = arr[i].title;
             string lowerJob = jobTitle;
-            for (char& c : lowerTitle) c = tolower(c);
-            for (char& c : lowerJob) c = tolower(c);
-            if (lowerTitle.find(lowerJob) == string::npos) titleMatch = false;
+            transform(lowerTitle.begin(), lowerTitle.end(), lowerTitle.begin(), ::tolower);
+            transform(lowerJob.begin(), lowerJob.end(), lowerJob.begin(), ::tolower);
+
+            if (lowerTitle.find(lowerJob) == string::npos &&
+                lowerJob.find(lowerTitle) == string::npos)
+                titleMatch = false;
         }
+
         if (!titleMatch) continue;
 
         int matched = 0;
@@ -112,10 +124,7 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
     linearTimeNs = duration_cast<nanoseconds>(totalMatchEnd - totalMatchStart).count();
 
     // Sort matches descending by percentage
-    for (int i = 0; i < mSize - 1; ++i)
-        for (int j = 0; j < mSize - i - 1; ++j)
-            if (m[j].perc < m[j + 1].perc)
-                swap(m[j], m[j + 1]);
+    sort(m, m + mSize, [](const Match& a, const Match& b) { return a.perc > b.perc; });
 }
 
 // -------------------- Print Matches --------------------
@@ -189,12 +198,15 @@ int main() {
     long long loadTime = duration_cast<milliseconds>(loadEnd - loadStart).count();
     cout << "Loaded Entries: " << size << " | Load Time: " << loadTime << " ms\n";
 
-    cout << "\nSorting Data (Selection Sort)...\n";
-    auto sortStart = high_resolution_clock::now();
-    selectionSortArray(arr, size);
-    auto sortEnd = high_resolution_clock::now();
-    long long sortTime = duration_cast<milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort Completed in " << sortTime << " ms\n";
+    // Sort only if employer
+    if (isEmployer) {
+        cout << "\nSorting Data (Selection Sort)...\n";
+        auto sortStart = high_resolution_clock::now();
+        selectionSortArray(arr, size);
+        auto sortEnd = high_resolution_clock::now();
+        long long sortTime = duration_cast<milliseconds>(sortEnd - sortStart).count();
+        cout << "Sort Completed in " << sortTime << " ms\n";
+    }
 
     cout << "\nMatching...\n";
     Match* matches = new Match[MAX_SIZE];
@@ -204,7 +216,6 @@ int main() {
     matchArray(arr, size, userSkills, userNum, matches, mSize, jobTitle, isEmployer,
                linearTimeNs, linearCount);
 
-    // ✅ FIX: Convert nanoseconds → milliseconds directly (no duration_cast)
     double matchTimeMs = linearTimeNs / 1'000'000.0;
     cout << "Match Completed in " << matchTimeMs << " ms\n";
 
@@ -235,7 +246,6 @@ int main() {
                         << matches[i].fullDesc << "\n";
             }
         }
-
         outFile << "========================================\n";
         outFile << "Total Matches Written: " << mSize << "\n";
         outFile << "Total Searches: " << linearCount << "\n";
@@ -262,7 +272,7 @@ int main() {
     cout << "           PERFORMANCE SUMMARY          \n";
     cout << "========================================\n";
     cout << "Data Load Time     : " << loadTime << " ms\n";
-    cout << "Sort Time          : " << sortTime << " ms\n";
+    cout << "Sort Time          : " << (isEmployer ? "Shown Above" : "Skipped for Employee") << "\n";
     cout << "Matching Time      : " << matchTimeMs << " ms\n";
     cout << "Total Execution    : " << totalTime << " ms\n";
     cout << "Memory Used        : " << fixed << setprecision(2)
