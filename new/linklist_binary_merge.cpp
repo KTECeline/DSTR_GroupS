@@ -36,6 +36,23 @@ static long long g_mergeComparisons = 0;
 static long long g_mergeCopies = 0;
 static long long g_mergeTempBytes = 0;
 
+// Memory tracking function
+double getCurrentMemoryMB() {
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize / (1024.0 * 1024.0);
+    }
+#else
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
+    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &infoCount) == KERN_SUCCESS) {
+        return info.resident_size / (1024.0 * 1024.0);
+    }
+#endif
+    return 0.0;
+}
+
 class LinkedListMatcher {
 private:
     Resume* head;
@@ -290,6 +307,9 @@ int main() {
     cout << "Loading Data\n";
     cout << "----------------------------------------\n";
 
+    double memBefore = getCurrentMemoryMB();
+    cout << "Memory before loading: " << fixed << setprecision(2) << memBefore << " MB\n";
+
     LinkedListMatcher matcher;
     
     auto loadStart = chrono::high_resolution_clock::now();
@@ -307,20 +327,26 @@ int main() {
     auto loadEnd = chrono::high_resolution_clock::now();
     auto loadDur = chrono::duration_cast<chrono::milliseconds>(loadEnd - loadStart).count();
 
+    double memAfterLoad = getCurrentMemoryMB();
     cout << "File: " << filename << endl;
     cout << "Loaded Entries: " << matcher.getSize() << endl;
     cout << "Load Time: " << loadDur << " ms\n";
+    cout << "Memory after loading: " << memAfterLoad << " MB\n";
+    cout << "Memory used for data: " << (memAfterLoad - memBefore) << " MB\n";
 
     cout << "\n----------------------------------------\n";
     cout << "Sorting Data (Merge Sort)\n";
     cout << "----------------------------------------\n";
 
+    double memBeforeSort = getCurrentMemoryMB();
     auto sortStart = chrono::high_resolution_clock::now();
     matcher.sort();
     auto sortEnd = chrono::high_resolution_clock::now();
+    double memAfterSort = getCurrentMemoryMB();
     auto sortDur = chrono::duration_cast<chrono::milliseconds>(sortEnd - sortStart).count();
 
     cout << "Sort Completed in " << sortDur << " ms\n";
+    cout << "Memory during sort: " << memAfterSort << " MB\n";
     cout << "Merge Sort Stats:\n";
     cout << "   - Calls: " << g_mergeCalls << endl;
     cout << "   - Comparisons: " << g_mergeComparisons << endl;
@@ -341,9 +367,11 @@ int main() {
     matcher.matchSkills(userSkills, userNum, matches, mSize, jobTitle, isEmployer, binTimeNs, binCount);
 
     auto matchEnd = chrono::high_resolution_clock::now();
+    double memAfterMatch = getCurrentMemoryMB();
     auto matchDur = chrono::duration_cast<chrono::milliseconds>(matchEnd - matchStart).count();
 
     cout << "Match Completed in " << matchDur << " ms\n";
+    cout << "Memory after matching: " << memAfterMatch << " MB\n";
     if (binCount > 0) {
         cout << "Binary Search Stats:\n";
         cout << "   - Total Searches: " << binCount << endl;
@@ -351,19 +379,10 @@ int main() {
         cout << "   - Avg Time/Search: " << (binTimeNs / (double)binCount) << " ns\n";
     }
 
-    // Memory usage
-#ifdef _WIN32
-    PROCESS_MEMORY_COUNTERS_EX pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
-        cout << "Memory Used (Working Set): " << (pmc.WorkingSetSize / (1024.0 * 1024.0)) << " MB\n";
-    }
-#else
-    struct mach_task_basic_info info;
-    mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
-    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &infoCount) == KERN_SUCCESS) {
-        cout << "Memory Used (Resident): " << (info.resident_size / (1024.0 * 1024.0)) << " MB\n";
-    }
-#endif
+    cout << "\n--- Memory Usage Summary ---\n";
+    cout << "Peak Memory Used: " << memAfterMatch << " MB\n";
+    cout << "Data Structure Memory: " << (matcher.getSize() * sizeof(Resume) / (1024.0 * 1024.0)) << " MB\n";
+    cout << "Matches Array Memory: " << (MAX_MATCHES * sizeof(Match) / (1024.0 * 1024.0)) << " MB\n";
 
     cout << "\n----------------------------------------\n";
     cout << "Match Results\n";
