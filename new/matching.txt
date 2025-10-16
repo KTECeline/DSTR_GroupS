@@ -1,0 +1,18 @@
+========================================
+Matching Jobs
+========================================
+Job 6603: 100.00% match — ml engineer,keras,tensorflow,cloud,python,mlops,computer vision,pytorch
+Job 6704: 100.00% match — ml engineer,python,mlops,computer vision,cloud
+Job 6668: 100.00% match — ml engineer,mlops,python,tensorflow,pytorch,cloud,computer vision,keras
+Job 6639: 100.00% match — ml engineer,mlops,python,keras,cloud,tensorflow
+Job 6632: 100.00% match — ml engineer,tensorflow,cloud,pytorch,computer vision,mlops,keras,python
+Job 6630: 100.00% match — ml engineer,computer vision,tensorflow,cloud,python,pytorch,mlops,keras
+Job 6629: 100.00% match — ml engineer,mlops,computer vision,cloud,keras,tensorflow,python,pytorch
+Job 6620: 100.00% match — ml engineer,python,cloud,keras,mlops,tensorflow,pytorch,computer vision
+Job 6618: 100.00% match — ml engineer,python,mlops,keras,cloud
+Job 6617: 100.00% match — ml engineer,tensorflow,computer vision,python,keras,pytorch
+========================================
+Total Matches Written: 1389
+Total Searches: 1963
+Total Time: 9.98 ms
+Avg Time/Search: 5084.56 ns

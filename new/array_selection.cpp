@@ -1,24 +1,25 @@
-#include <windows.h>  
-#include <psapi.h>    // For memory usage
+#include <windows.h>
+#include <psapi.h>
 #include "common.hpp"
 #include <fstream>
 #include <chrono>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 using namespace std::chrono;
 
-// -------------------- Utility Functions --------------------
+//  Utility Functions 
 int splitString(const string& line, string tokens[], int maxTokens) {
     int count = 0;
     stringstream ss(line);
     string token;
     while (getline(ss, token, ',')) {
         if (!token.empty()) {
-            token.erase(0, token.find_first_not_of(" \t"));
-            size_t last = token.find_last_not_of(" \t");
+            token.erase(0, token.find_first_not_of(" \t\r\n"));
+            size_t last = token.find_last_not_of(" \t\r\n");
             if (last != string::npos) token.erase(last + 1);
             if (count < maxTokens) tokens[count++] = token;
         }
@@ -33,9 +34,14 @@ void parseSkills(string line, Resume& res, bool isJob) {
     res.numSkills = 0;
 
     if (isJob) {
-        if (tokCount > 0) {
+        
+        if (tokCount > 1 && !isdigit(tokens[0][0])) {
             res.title = tokens[0];
             for (int i = 1; i < tokCount && res.numSkills < 20; ++i)
+                res.skills[res.numSkills++] = tokens[i];
+        } else if (tokCount > 1) {
+            res.title = tokens[1];
+            for (int i = 2; i < tokCount && res.numSkills < 20; ++i)
                 res.skills[res.numSkills++] = tokens[i];
         }
     } else {
@@ -45,7 +51,7 @@ void parseSkills(string line, Resume& res, bool isJob) {
     }
 }
 
-// -------------------- Selection Sort --------------------
+//  Selection Sort 
 void selectionSortArray(Resume arr[], int n) {
     for (int i = 0; i < n - 1; ++i) {
         int maxIndex = i;
@@ -57,42 +63,52 @@ void selectionSortArray(Resume arr[], int n) {
     }
 }
 
-// -------------------- Linear Search --------------------
+// Linear Search 
 bool linearSearchSkill(const string sk[20], int n, const string& target) {
+    string lowerTarget = target;
+    transform(lowerTarget.begin(), lowerTarget.end(), lowerTarget.begin(), ::tolower);
+
     for (int i = 0; i < n; ++i) {
-        if (sk[i] == target)
+        string lowerSkill = sk[i];
+        transform(lowerSkill.begin(), lowerSkill.end(), lowerSkill.begin(), ::tolower);
+        if (lowerSkill == lowerTarget)
             return true;
     }
     return false;
 }
 
-// -------------------- Match Logic --------------------
+//  Match Logic 
 void matchArray(const Resume arr[], int size, const string userSk[], int userN,
                 Match m[], int& mSize, const string& jobTitle, bool isEmployer,
                 long long& linearTimeNs, long long& linearCount) {
+
     mSize = 0;
-    linearTimeNs = 0;
     linearCount = 0;
+
+    auto totalMatchStart = high_resolution_clock::now();
 
     for (int i = 0; i < size; ++i) {
         bool titleMatch = true;
+
+        
         if (!isEmployer && !jobTitle.empty()) {
             string lowerTitle = arr[i].title;
             string lowerJob = jobTitle;
-            for (char& c : lowerTitle) c = tolower(c);
-            for (char& c : lowerJob) c = tolower(c);
-            if (lowerTitle.find(lowerJob) == string::npos) titleMatch = false;
+            transform(lowerTitle.begin(), lowerTitle.end(), lowerTitle.begin(), ::tolower);
+            transform(lowerJob.begin(), lowerJob.end(), lowerJob.begin(), ::tolower);
+
+            if (lowerTitle.find(lowerJob) == string::npos &&
+                lowerJob.find(lowerTitle) == string::npos)
+                titleMatch = false;
         }
+
         if (!titleMatch) continue;
 
         int matched = 0;
         for (int j = 0; j < userN; ++j) {
-            auto s = high_resolution_clock::now();
-            bool found = linearSearchSkill(arr[i].skills, arr[i].numSkills, userSk[j]);
-            auto e = high_resolution_clock::now();
-            linearTimeNs += duration_cast<nanoseconds>(e - s).count();
+            if (linearSearchSkill(arr[i].skills, arr[i].numSkills, userSk[j]))
+                ++matched;
             ++linearCount;
-            if (found) ++matched;
         }
 
         double perc = userN > 0 ? (static_cast<double>(matched) / userN) * 100.0 : 0.0;
@@ -104,14 +120,14 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
         }
     }
 
+    auto totalMatchEnd = high_resolution_clock::now();
+    linearTimeNs = duration_cast<nanoseconds>(totalMatchEnd - totalMatchStart).count();
+
     // Sort matches descending by percentage
-    for (int i = 0; i < mSize - 1; ++i)
-        for (int j = 0; j < mSize - i - 1; ++j)
-            if (m[j].perc < m[j + 1].perc)
-                swap(m[j], m[j + 1]);
+    sort(m, m + mSize, [](const Match& a, const Match& b) { return a.perc > b.perc; });
 }
 
-// -------------------- Print Matches --------------------
+//  Print Matches 
 void printMatches(const Match m[], int mSize, bool isEmployer) {
     string header = isEmployer ? "Matching Candidates:" : "Matching Jobs:";
     cout << "\n" << header << endl;
@@ -123,7 +139,7 @@ void printMatches(const Match m[], int mSize, bool isEmployer) {
     if (mSize == 0) cout << "No matches found.\n";
 }
 
-// -------------------- MAIN --------------------
+//  MAIN 
 int main() {
     auto totalStart = high_resolution_clock::now();
     cout << "========================================\n";
@@ -182,52 +198,82 @@ int main() {
     long long loadTime = duration_cast<milliseconds>(loadEnd - loadStart).count();
     cout << "Loaded Entries: " << size << " | Load Time: " << loadTime << " ms\n";
 
-    cout << "\nSorting Data (Selection Sort)...\n";
-    auto sortStart = high_resolution_clock::now();
-    selectionSortArray(arr, size);
-    auto sortEnd = high_resolution_clock::now();
-    long long sortTime = duration_cast<milliseconds>(sortEnd - sortStart).count();
-    cout << "Sort Completed in " << sortTime << " ms\n";
+
+    if (isEmployer) {
+        cout << "\nSorting Data (Selection Sort)...\n";
+        auto sortStart = high_resolution_clock::now();
+        selectionSortArray(arr, size);
+        auto sortEnd = high_resolution_clock::now();
+        long long sortTime = duration_cast<milliseconds>(sortEnd - sortStart).count();
+        cout << "Sort Completed in " << sortTime << " ms\n";
+    }
 
     cout << "\nMatching...\n";
     Match* matches = new Match[MAX_SIZE];
     int mSize = 0;
     long long linearTimeNs = 0, linearCount = 0;
-    auto matchStart = high_resolution_clock::now();
 
     matchArray(arr, size, userSkills, userNum, matches, mSize, jobTitle, isEmployer,
                linearTimeNs, linearCount);
 
-    auto matchEnd = high_resolution_clock::now();
-    long long matchTime = duration_cast<milliseconds>(matchEnd - matchStart).count();
-    cout << "Match Completed in " << matchTime << " ms\n";
+    double matchTimeMs = linearTimeNs / 1'000'000.0;
+    cout << "Match Completed in " << matchTimeMs << " ms\n";
 
     if (linearCount > 0) {
         cout << "Linear Search Stats:\n";
         cout << "   - Total Searches: " << linearCount << endl;
-        cout << "   - Total Time: " << (linearTimeNs / 1'000'000.0) << " ms\n";
+        cout << "   - Total Time: " << matchTimeMs << " ms\n";
         cout << "   - Avg Time/Search: " << (linearTimeNs / (double)linearCount) << " ns\n";
     }
 
     printMatches(matches, mSize, isEmployer);
 
+    //  Write Matches to File
+    ofstream outFile("matching.txt", ios::out | ios::trunc);
+    if (outFile.is_open()) {
+        outFile << "========================================\n";
+        outFile << (isEmployer ? "Matching Candidates" : "Matching Jobs") << "\n";
+        outFile << "========================================\n";
+
+        if (mSize == 0) {
+            outFile << "No matches found.\n";
+        } else {
+            for (int i = 0; i < mSize && i < 10; ++i) {
+                outFile << (isEmployer ? "Candidate " : "Job ")
+                        << (matches[i].id + 1) << ": "
+                        << fixed << setprecision(2)
+                        << matches[i].perc << "% match — "
+                        << matches[i].fullDesc << "\n";
+            }
+        }
+        outFile << "========================================\n";
+        outFile << "Total Matches Written: " << mSize << "\n";
+        outFile << "Total Searches: " << linearCount << "\n";
+        outFile << "Total Time: " << matchTimeMs << " ms\n";
+        outFile << "Avg Time/Search: " << (linearTimeNs / (double)max(1LL, linearCount)) << " ns\n";
+        outFile.flush();
+        outFile.close();
+        cout << "\n✅ Matches have been saved to 'matching.txt'.\n";
+    } else {
+        cerr << "\n❌ Error: Could not create 'matching.txt' file.\n";
+    }
+
+    //  Performance Summary 
     auto totalEnd = high_resolution_clock::now();
     long long totalTime = duration_cast<milliseconds>(totalEnd - totalStart).count();
 
-    // -------------------- Memory Usage --------------------
     PROCESS_MEMORY_COUNTERS_EX pmc;
     SIZE_T memUsedKB = 0;
     if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
         memUsedKB = pmc.WorkingSetSize / 1024;
     }
 
-    // -------------------- Performance Summary --------------------
     cout << "\n========================================\n";
     cout << "           PERFORMANCE SUMMARY          \n";
     cout << "========================================\n";
     cout << "Data Load Time     : " << loadTime << " ms\n";
-    cout << "Sort Time          : " << sortTime << " ms\n";
-    cout << "Matching Time      : " << matchTime << " ms\n";
+    cout << "Sort Time          : " << (isEmployer ? "Shown Above" : "Skipped for Employee") << "\n";
+    cout << "Matching Time      : " << matchTimeMs << " ms\n";
     cout << "Total Execution    : " << totalTime << " ms\n";
     cout << "Memory Used        : " << fixed << setprecision(2)
          << memUsedKB / 1024.0 << " MB\n";
