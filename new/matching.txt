@@ -1,0 +1,15 @@
+========================================
+Matching Candidates
+========================================
+Candidate 3: 100.00% match — rest apis,create,spring boot,miss,security,agile,java,docker
+Candidate 8: 100.00% match — data,spring boot,git,java,pay,docker,rest apis,system design
+Candidate 18: 100.00% match — system design,almost,java,docker,claim,need,rest apis,spring boot
+Candidate 23: 100.00% match — git,system design,rest apis,model,docker,java,force,agile
+Candidate 39: 100.00% match — tv,rest apis,agile,spring boot,java,catch,system design,docker
+Candidate 43: 100.00% match — docker,system design,painting,rest apis,record,java,where,git
+Candidate 49: 100.00% match — system design,git,information,rest apis,docker,java,man,agile
+Candidate 58: 100.00% match — spring boot,agile,so,java,owner,docker,rest apis,git
+Candidate 70: 100.00% match — edge,tv,java,spring boot,system design,now,git,agile
+Candidate 72: 100.00% match — choose,agile,garden,git,java,docker,spring boot,system design
+========================================
+Total Matches Written: 1085
