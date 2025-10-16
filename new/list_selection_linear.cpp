@@ -15,8 +15,8 @@ using namespace std;
 
 // -------------------- Linked List Node --------------------
 struct Node {
-    Resume data;
-    Node* next;
+    Resume data;    // Contains: title, skills[20], numSkills, fullDesc
+    Node* next;     // Single direction traversal (forward only)
     
     Node(const Resume& r) : data(r), next(nullptr) {}
 };
@@ -72,6 +72,10 @@ void printMatches(const Match m[], int mSize, bool isEmployer) {
     if (mSize == 0) cout << "No matches found." << endl;
 }
 
+// Simple linear search for skill in skills array
+// O(n) complexity
+
+// Unsorted array, so linear search is suitable; Small search space; Simple implementation
 bool linearSearchSkill(const string sk[20], int n, const string& target) {
     for (int k = 0; k < n; ++k) {
         if (sk[k] == target) return true;
@@ -115,6 +119,10 @@ void deleteList(Node*& head) {
 static long long g_selectionComparisons = 0;
 static long long g_selectionSwaps = 0;
 
+// Simple implementation of selection sort on linked list
+// Minimises number of swaps
+
+// May be inefficient for large lists due to O(n^2) complexity
 void selectionSortList(Node* head) {
     if (head == nullptr) return;
     
