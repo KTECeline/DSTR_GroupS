@@ -14,5 +14,5 @@ Job 6617: 100.00% match — ml engineer,tensorflow,computer vision,python,keras,
 ========================================
 Total Matches Written: 1389
 Total Searches: 1963
-Total Time: 14.16 ms
-Avg Time/Search: 7216.00 ns
+Total Time: 9.98 ms
+Avg Time/Search: 5084.56 ns
