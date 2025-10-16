@@ -204,13 +204,14 @@ int main() {
     matchArray(arr, size, userSkills, userNum, matches, mSize, jobTitle, isEmployer,
                linearTimeNs, linearCount);
 
-    long long matchTime = duration_cast<milliseconds>(linearTimeNs / 1'000'000).count();
-    cout << "Match Completed in " << (linearTimeNs / 1'000'000.0) << " ms\n";
+    // ✅ FIX: Convert nanoseconds → milliseconds directly (no duration_cast)
+    double matchTimeMs = linearTimeNs / 1'000'000.0;
+    cout << "Match Completed in " << matchTimeMs << " ms\n";
 
     if (linearCount > 0) {
         cout << "Linear Search Stats:\n";
         cout << "   - Total Searches: " << linearCount << endl;
-        cout << "   - Total Time: " << (linearTimeNs / 1'000'000.0) << " ms\n";
+        cout << "   - Total Time: " << matchTimeMs << " ms\n";
         cout << "   - Avg Time/Search: " << (linearTimeNs / (double)linearCount) << " ns\n";
     }
 
@@ -238,7 +239,7 @@ int main() {
         outFile << "========================================\n";
         outFile << "Total Matches Written: " << mSize << "\n";
         outFile << "Total Searches: " << linearCount << "\n";
-        outFile << "Total Time: " << (linearTimeNs / 1'000'000.0) << " ms\n";
+        outFile << "Total Time: " << matchTimeMs << " ms\n";
         outFile << "Avg Time/Search: " << (linearTimeNs / (double)max(1LL, linearCount)) << " ns\n";
         outFile.flush();
         outFile.close();
@@ -262,7 +263,7 @@ int main() {
     cout << "========================================\n";
     cout << "Data Load Time     : " << loadTime << " ms\n";
     cout << "Sort Time          : " << sortTime << " ms\n";
-    cout << "Matching Time      : " << (linearTimeNs / 1'000'000.0) << " ms\n";
+    cout << "Matching Time      : " << matchTimeMs << " ms\n";
     cout << "Total Execution    : " << totalTime << " ms\n";
     cout << "Memory Used        : " << fixed << setprecision(2)
          << memUsedKB / 1024.0 << " MB\n";
