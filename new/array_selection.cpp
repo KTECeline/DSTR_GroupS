@@ -11,7 +11,7 @@
 using namespace std;
 using namespace std::chrono;
 
-// -------------------- Utility Functions --------------------
+//  Utility Functions 
 int splitString(const string& line, string tokens[], int maxTokens) {
     int count = 0;
     stringstream ss(line);
@@ -34,7 +34,7 @@ void parseSkills(string line, Resume& res, bool isJob) {
     res.numSkills = 0;
 
     if (isJob) {
-        // Handle if first token is ID and second is title
+        
         if (tokCount > 1 && !isdigit(tokens[0][0])) {
             res.title = tokens[0];
             for (int i = 1; i < tokCount && res.numSkills < 20; ++i)
@@ -51,7 +51,7 @@ void parseSkills(string line, Resume& res, bool isJob) {
     }
 }
 
-// -------------------- Selection Sort --------------------
+//  Selection Sort 
 void selectionSortArray(Resume arr[], int n) {
     for (int i = 0; i < n - 1; ++i) {
         int maxIndex = i;
@@ -63,7 +63,7 @@ void selectionSortArray(Resume arr[], int n) {
     }
 }
 
-// -------------------- Case-Insensitive Linear Search --------------------
+// Linear Search 
 bool linearSearchSkill(const string sk[20], int n, const string& target) {
     string lowerTarget = target;
     transform(lowerTarget.begin(), lowerTarget.end(), lowerTarget.begin(), ::tolower);
@@ -77,7 +77,7 @@ bool linearSearchSkill(const string sk[20], int n, const string& target) {
     return false;
 }
 
-// -------------------- Match Logic --------------------
+//  Match Logic 
 void matchArray(const Resume arr[], int size, const string userSk[], int userN,
                 Match m[], int& mSize, const string& jobTitle, bool isEmployer,
                 long long& linearTimeNs, long long& linearCount) {
@@ -90,7 +90,7 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
     for (int i = 0; i < size; ++i) {
         bool titleMatch = true;
 
-        // Flexible partial job title matching for employees
+        
         if (!isEmployer && !jobTitle.empty()) {
             string lowerTitle = arr[i].title;
             string lowerJob = jobTitle;
@@ -127,7 +127,7 @@ void matchArray(const Resume arr[], int size, const string userSk[], int userN,
     sort(m, m + mSize, [](const Match& a, const Match& b) { return a.perc > b.perc; });
 }
 
-// -------------------- Print Matches --------------------
+//  Print Matches 
 void printMatches(const Match m[], int mSize, bool isEmployer) {
     string header = isEmployer ? "Matching Candidates:" : "Matching Jobs:";
     cout << "\n" << header << endl;
@@ -139,7 +139,7 @@ void printMatches(const Match m[], int mSize, bool isEmployer) {
     if (mSize == 0) cout << "No matches found.\n";
 }
 
-// -------------------- MAIN --------------------
+//  MAIN 
 int main() {
     auto totalStart = high_resolution_clock::now();
     cout << "========================================\n";
@@ -198,7 +198,7 @@ int main() {
     long long loadTime = duration_cast<milliseconds>(loadEnd - loadStart).count();
     cout << "Loaded Entries: " << size << " | Load Time: " << loadTime << " ms\n";
 
-    // Sort only if employer
+
     if (isEmployer) {
         cout << "\nSorting Data (Selection Sort)...\n";
         auto sortStart = high_resolution_clock::now();
@@ -228,7 +228,7 @@ int main() {
 
     printMatches(matches, mSize, isEmployer);
 
-    // -------------------- Write Matches to File --------------------
+    //  Write Matches to File
     ofstream outFile("matching.txt", ios::out | ios::trunc);
     if (outFile.is_open()) {
         outFile << "========================================\n";
@@ -258,7 +258,7 @@ int main() {
         cerr << "\n❌ Error: Could not create 'matching.txt' file.\n";
     }
 
-    // -------------------- Performance Summary --------------------
+    //  Performance Summary 
     auto totalEnd = high_resolution_clock::now();
     long long totalTime = duration_cast<milliseconds>(totalEnd - totalStart).count();
 
