@@ -104,7 +104,11 @@ public:
         g_mergeTempBytes += sizeof(Resume*) * 2; // Track pointer operations
         
         g_mergeComparisons++;
-        if (left->numSkills >= right->numSkills) {
+        // Sort by first skill alphabetically (more realistic comparison)
+        string leftKey = left->numSkills > 0 ? left->skills[0] : "";
+        string rightKey = right->numSkills > 0 ? right->skills[0] : "";
+        
+        if (leftKey <= rightKey) {
             result = left;
             result->next = merge(left->next, right);
             g_mergeCopies++;
